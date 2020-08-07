@@ -210,7 +210,7 @@ class Transformer(object):
 
     # output OCR length barely depends on image feature length
     # max_decode_length = input_length + self.params["extra_decode_length"]
-    max_decode_length = self.params["max_decode_length"]
+    max_decode_length = self.params["max_length"]
 
     symbols_to_logits_fn = self._get_symbols_to_logits_fn(max_decode_length)
 

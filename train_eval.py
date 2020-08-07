@@ -3,49 +3,37 @@ import argparse
 import tensorflow as tf
 import model
 import numpy as np
-import tarfile
 import random
+from dataloader import *
+from sklearn.model_selection import train_test_split
+
 
 if __name__ =='__main__':
     parser = argparse.ArgumentParser()
- 
-    parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--batch_size', type=int, default=20)
-    parser.add_argument('--learning_rate', type=float, default=2)
-    parser.add_argument('--model_dir', type=str, default='./output/ckpt')
-    parser.add_argument('--debug', type=bool, default=True)
-    parser.add_argument('--max_decode_length', type=int, default=256)
-    parser.add_argument('--hidden_size', type=int, default=512)
-    parser.add_argument('--height', type=int, default=160)
-    parser.add_argument('--width', type=int, default=800)
-    parser.add_argument('--num_units', type=int, default=512)
-    parser.add_argument('--num_gpus', type=int, default=2)
-    parser.add_argument('--dataset_dir', type=str, default="/data")
-    parser.add_argument('--model', type=str, default="transformer")
-    parser.add_argument('--eval_dir', type=str, default="/data")
-    parser.add_argument('--max_steps', type=int, default=150*1000) # 150k
-    parser.add_argument('--eval_num', type=int, default=40495)
-    parser.add_argument('--save_checkpoints_steps', type=int, default=30000)
-    parser.add_argument('--keep_checkpoint_max', type=int, default=10)
-    parser.add_argument('--BNon', type=int, default=0)
-    # removing tokens that occur less than N times in training data
-    parser.add_argument('--vocab_freq_limit', type=int, default=200)
-    parser.add_argument('--extract_tarfile', type=str, default="/data")
 
-    parser.add_argument('--num_hidden_layers', type=int, default=6)
+    parser.add_argument('--max_epochs', type=int, default=100)
+    parser.add_argument('--max_steps', type=int, default=10000)
+    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--learning_rate', type=float, default=2)
+    parser.add_argument('--num_gpus', type=int, default=0)
+    parser.add_argument('--save_checkpoints_steps', type=int, default=5000)
+    parser.add_argument('--keep_checkpoint_max', type=int, default=10)
+
+    parser.add_argument('--max_length', type=int, default=25)
+    # n Transformer encoder and n Transformer decoder
+    parser.add_argument('--num_hidden_layers', type=int, default=1)
+    # multi-head splits into (hidden_size / num heads) and combines after multi-head attention
     parser.add_argument('--num_heads', type=int, default=8)
-    parser.add_argument('--filter_size', type=int, default=2048) # Inner layer dimension in the feedforward network.
+    parser.add_argument('--hidden_size', type=int, default=128)
+    # Inner layer dimension in the feedforward network (128->512->128)
+    parser.add_argument('--filter_size', type=int, default=512)
+
+    parser.add_argument('--data_path', type=str, default='./data/ChatBotData.csv')
+    parser.add_argument('--pre_data_path', type=str, default='./data/pre_ChatBotData.csv')
+    parser.add_argument('--vocab_path', type=str, default='./data/vocabulary.txt')
+    parser.add_argument('--model_dir', type=str, default='./output/ckpt')
 
     args = parser.parse_args()
-    
-    if args.extract_tarfile is not None:
-        print("-BEGIN- Extracting all dataset")
-        tar = tarfile.open(args.extract_tarfile)
-        tar.extractall(os.path.split(args.extract_tarfile)[0])
-        print("-DONE- Extracting all dataset")
-    
-    if not os.path.exists(args.model_dir):
-        os.mkdir(args.model_dir)
 
     tf.reset_default_graph()
     tf.set_random_seed(0)
@@ -55,37 +43,38 @@ if __name__ =='__main__':
     if args.num_gpus > 0:
         strategy = tf.contrib.distribute.MirroredStrategy(num_gpus=args.num_gpus)
         config = tf.estimator.RunConfig(train_distribute=strategy,
-                                        save_checkpoints_steps = args.save_checkpoints_steps, # save checkpoint and evaluate using it for every N steps
-                                        tf_random_seed=1, # for reproducing trained network
+                                        save_checkpoints_steps = args.save_checkpoints_steps, # save checkpoint and evaluate every N steps
+                                        tf_random_seed=1,
                                         save_summary_steps = 100, # make summary every N steps
                                         keep_checkpoint_max=args.keep_checkpoint_max) # save checkpoint files up to N
     else:
         print('No GPU found. Using CPU!')
         config = tf.estimator.RunConfig()
-    
+
+    question, answer = load_data(args.data_path, args.pre_data_path)
+    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, args.vocab_path)
+
+    # define estimator (vocab_size should be determined before)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn,
             model_dir=args.model_dir,
             params=vars(args),
             config=config
             )
 
-    if args.debug == True:
-        tf.logging.set_verbosity(tf.logging.INFO)
+    # split train and eval QnA
+    train_input, eval_input, train_label, eval_label = train_test_split(question, answer, test_size=0.33, random_state=42)
 
-    # https://www.tensorflow.org/api_docs/python/tf/estimator/train_and_evaluate
-    if args.eval_dir is None:
-        estimator.train(input_fn=lambda:model.input_fn(
-                                        args.epochs, args.batch_size, dataset_dir=args.dataset_dir, max_length=args.max_decode_length, 
-                                        image_size=(args.height, args.width), vocabulary=vocabulary), 
-                                        max_steps=args.max_steps)
-    else:
-        train_spec = tf.estimator.TrainSpec(input_fn=lambda:model.input_fn(
-                                            args.epochs, args.batch_size, dataset_dir=args.dataset_dir, max_length=args.max_decode_length, 
-                                            image_size=(args.height, args.width), vocabulary=vocabulary), 
-                                            max_steps=args.max_steps)
+    train_input = text2num(train_input, char2idx, args.max_length)
+    train_label = text2num(train_label, char2idx, args.max_length)
 
-        eval_spec = tf.estimator.EvalSpec(input_fn=lambda:model.input_fn(
-                                            epochs=None, batch_size=args.batch_size, dataset_dir=args.eval_dir, max_length=args.max_decode_length, 
-                                            image_size=(args.height, args.width), vocabulary=vocabulary))
+    eval_input = text2num(eval_input, char2idx, args.max_length)
+    eval_label = text2num(eval_label, char2idx, args.max_length)
 
-        tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+    tf.logging.set_verbosity(tf.logging.INFO)
+
+    # train up to args.max_steps unless args.max_epochs is done
+    train_spec = tf.estimator.TrainSpec(max_steps=args.max_steps,
+                                      input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=(train_input, train_label)))
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=(eval_input, eval_label)))
+
+    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
