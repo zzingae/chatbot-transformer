@@ -55,7 +55,7 @@ class Transformer(object):
     """
     self.train = train
     self.params = params
-    print("Transoformer params: {}".format(self.params))
+
     self.embedding_softmax_layer = embedding_layer.EmbeddingSharedWeights(
         params["vocab_size"], params["hidden_size"],
         method="matmul" if params["tpu"] else "gather")
@@ -207,10 +207,7 @@ class Transformer(object):
     """Return predicted sequence."""
     batch_size = tf.shape(encoder_outputs)[0]
     input_length = tf.shape(encoder_outputs)[1]
-
-    # output OCR length barely depends on image feature length
-    # max_decode_length = input_length + self.params["extra_decode_length"]
-    max_decode_length = self.params["max_length"]
+    max_decode_length = input_length + self.params["extra_decode_length"]
 
     symbols_to_logits_fn = self._get_symbols_to_logits_fn(max_decode_length)
 
