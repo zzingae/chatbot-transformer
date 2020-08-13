@@ -57,8 +57,7 @@ BASE_PARAMS = defaultdict(
     # TPU specific parameters
     use_tpu=False,
     static_batch=False,
-    # allow_ffn_pad=True, flrngel
-    allow_ffn_pad=False,
+    allow_ffn_pad=True,
 )
 
 BIG_PARAMS = BASE_PARAMS.copy()
