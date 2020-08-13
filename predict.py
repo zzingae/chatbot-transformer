@@ -20,7 +20,7 @@ if __name__ =='__main__':
 
     parser.add_argument('--vocab_path', type=str, default='./data/vocabulary.txt')
     parser.add_argument('--model_dir', type=str, default='./output/ckpt')
-    parser.add_argument('--pred_checkpoint', type=str, default='model.ckpt-10000')
+    parser.add_argument('--pred_checkpoint', type=str, default='model.ckpt-100000')
 
     # error when spaces exist between characters
     parser.add_argument('--question', type=str, default='안녕하세요')
@@ -40,6 +40,8 @@ if __name__ =='__main__':
             config=config
             )
 
+    args.question = '감사합니다'
+
     twitter = Twitter()
     morph_question = [cleaning_sentence(twitter, args.question)]
     num_question = text2num(morph_question,char2idx,args.max_length)
@@ -51,6 +53,6 @@ if __name__ =='__main__':
         indices = pred['outputs'].tolist()
         # 최초 END 토큰이 나오기 전까지만 사용
         answer = num2text(indices, char2idx['<END>'], idx2char)
-        print('Q: {}'.format(args.question))
+        print('Q: {}'.format(morph_question))
         print('A: {}'.format(answer))
         

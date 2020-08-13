@@ -52,8 +52,8 @@ def model_fn(features, mode, params):
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, beta1=params['optimizer_adam_beta1'], beta2=params['optimizer_adam_beta2'], epsilon=params['optimizer_adam_epsilon'])
         train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
 
-        # 매 100번 마다 logit 과 answer 값을 보여줌
-        logging_hook = tf.train.LoggingTensorHook({"logit": tf.reduce_mean(logits), "answer": features['answer'][0]}, every_n_iter=100)
+        # 매 100번 마다 logitmax 과 answer 값을 보여줌
+        logging_hook = tf.train.LoggingTensorHook({"logitmax": tf.argmax(logits[0], -1), "answer": features['answer'][0]}, every_n_iter=100)
 
         # 여러가지 metric 을 계산하여 보여줌 (accuracy, BLEU score, ..)
         eval_metric_ops = metrics.get_eval_metrics(logits, features['answer'], params)

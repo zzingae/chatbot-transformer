@@ -19,6 +19,7 @@ if __name__ =='__main__':
     parser.add_argument('--save_checkpoints_steps', type=int, default=5000)
     parser.add_argument('--keep_checkpoint_max', type=int, default=10)
 
+    parser.add_argument('--vocab_limit', type=int, default=5000)
     parser.add_argument('--max_length', type=int, default=25)
     # n Transformer encoder and n Transformer decoder
     parser.add_argument('--num_hidden_layers', type=int, default=1)
@@ -52,7 +53,7 @@ if __name__ =='__main__':
         config = tf.estimator.RunConfig()
 
     question, answer = load_data(args.data_path, args.pre_data_path)
-    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, args.vocab_path)
+    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, args.vocab_path, args.vocab_limit)
 
     # define estimator (vocab_size should be determined before)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn,

@@ -44,14 +44,22 @@ def cleaning_sentence(morpher, sentence):
     return re.sub(CHANGE_FILTER, "", morph_seq)
     
 
-def load_vocabulary(sentences, path):
+def load_vocabulary(sentences, path, vocab_limit=5000):
 
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as vocab_file:
             vocab_list = [line.strip() for line in vocab_file]
     else:
         words = [word for seq in sentences for word in seq.split()]
-        vocab_list = MARKER + list(set(words))
+        word_freq = {}
+        for word in words:
+            if word in word_freq:
+                word_freq[word]+=1
+            else:
+                word_freq[word]=1
+
+        vocab=sorted(word_freq, key=lambda k : word_freq[k], reverse=True)
+        vocab_list = MARKER + vocab[:vocab_limit]
 
         with open(path, 'w') as vocabulary_file:
             for word in vocab_list:
