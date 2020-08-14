@@ -12,6 +12,7 @@ if __name__ =='__main__':
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--num_gpus', type=int, default=0)
 
+    parser.add_argument('--max_iter', type=int, default=4)
     parser.add_argument('--max_length', type=int, default=25)
     parser.add_argument('--num_hidden_layers', type=int, default=1)
     parser.add_argument('--num_heads', type=int, default=8)

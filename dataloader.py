@@ -105,10 +105,36 @@ def num2text(indices, end_idx, dictionary):
     return ' '.join(words)
 
 
-def train_parse_function():
+def label_masking(label, max_length):
+
+    mask_token = 0
+    end_token = 1
+
+    # tf.where: If both x and y are None, then this operation returns the coordinates of true elements of condition
+    actual_len = tf.where(tf.equal(label, end_token))
+
+    mask_num = tf.random.uniform(shape=[1], minval=1, maxval=actual_len, dtype=tf.dtypes.int32)
+    indices = tf.reshape(tf.range(start=0, limit=actual_len, delta=1), [actual_len,1])
+    # samples mask_num number of indices from uniform(0~actual_len) without replacement
+    indices = tf.random.shuffle(indices)
+    mask_ind = tf.slice(indices,[0,0],[tf.squeeze(mask_num),1])
+    # put 1 in mask_ind, leaving the rest of positions 0
+    bool_mask = tf.cast(tf.scatter_nd(mask_ind,tf.ones(mask_num,tf.int32),[max_length]), tf.bool)
+    # put mask_token in mask_ind, leaving the rest of positions same as label
+    masked_label = tf.where(bool_mask, tf.ones(max_length,tf.int32)*mask_token, label)
+    label_weight = tf.where(bool_mask, tf.ones(max_length,tf.int32), tf.zeros(max_length,tf.int32))
+    return masked_label, label_weight
+
+
+def train_parse_function(max_length):
     def _parse_function(question, answer):
         # >  https://www.tensorflow.org/guide/datasets
-        return {"question": question, "answer" : tf.cast(answer, tf.int32)}
+
+        mask_answer,answer_weight = label_masking(answer, max_length)
+
+        return {"question": question, "answer" : tf.cast(answer, tf.int32), 
+                "mask_answer" : tf.cast(mask_answer, tf.int32), "answer_weight" : tf.cast(answer_weight, tf.float32)}
+
     return lambda a,b: _parse_function(a,b)
 
 
@@ -119,12 +145,12 @@ def pred_parse_function():
     return lambda a: _parse_function(a)
 
 
-def input_fn(epoch, batch_size, data):
+def input_fn(epoch, batch_size, data, max_length):
     # > reference : https://www.tensorflow.org/guide/datasets
     questions = tf.constant(data[0])
     answers = tf.constant(data[1])
     ds = tf.data.Dataset.from_tensor_slices((questions, answers))
-    ds = ds.map(train_parse_function(), num_parallel_calls=8)
+    ds = ds.map(train_parse_function(max_length), num_parallel_calls=8)
 
     if epoch is None:
         ds = ds.repeat(1)

@@ -2,6 +2,7 @@ from official.transformer.model.model_params import BASE_PARAMS as Transformer_p
 import official.transformer.utils.metrics as metrics
 from official.utils.logs import hooks_helper
 from official.transformer.model.transformer import Transformer
+from transformer import MaskTransformer
 import tensorflow as tf
 import random
 import os
@@ -38,7 +39,7 @@ def model_fn(features, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT: features['answer']=None
 
     # define transformer
-    transformer = Transformer(params, (mode == tf.estimator.ModeKeys.TRAIN))
+    transformer = MaskTransformer(params, (mode == tf.estimator.ModeKeys.TRAIN))
     logits = transformer(features['question'], features['answer'])
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
