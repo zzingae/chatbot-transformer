@@ -11,10 +11,10 @@ FILTERS = "([~.,\"':;)(])"
 PAD = "<PADDING>"
 # STD = "<START>"
 END = "<END>"
-# UNK = "<UNKNWON>"
+UNK = "<UNKNOWN>"
 
 # MARKER = [PAD, STD, END, UNK]
-MARKER = [PAD, END]
+MARKER = [PAD, END, UNK]
 CHANGE_FILTER = re.compile(FILTERS)
 
 
@@ -82,7 +82,7 @@ def text2num(sentences, dictionary, max_length):
             if word in dictionary:
                 sequence_index.append(dictionary[word])
             else:
-                sequence_index.append(dictionary[PAD])
+                sequence_index.append(dictionary[UNK])
 
         if len(sequence_index) > max_length-1:
             sequence_index = sequence_index[:max_length-1]
