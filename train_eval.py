@@ -26,7 +26,7 @@ if __name__ =='__main__':
     # multi-head splits into (hidden_size / num heads) and combines after multi-head attention
     parser.add_argument('--num_heads', type=int, default=8)
     parser.add_argument('--hidden_size', type=int, default=128)
-    # Inner layer dimension in the feedforward network (128->512->128)
+    # inner layer dimension in the feedforward network (128->512->128)
     parser.add_argument('--filter_size', type=int, default=512)
 
     parser.add_argument('--data_path', type=str, default='./data/ChatBotData.csv')
