@@ -11,8 +11,8 @@ from sklearn.model_selection import train_test_split
 if __name__ =='__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--max_epochs', type=int, default=100)
-    parser.add_argument('--max_steps', type=int, default=10000)
+    parser.add_argument('--max_epochs', type=int, default=1000)
+    parser.add_argument('--max_steps', type=int, default=100000)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--learning_rate', type=float, default=2)
     parser.add_argument('--num_gpus', type=int, default=0)
@@ -22,7 +22,7 @@ if __name__ =='__main__':
     parser.add_argument('--vocab_limit', type=int, default=5000)
     parser.add_argument('--max_length', type=int, default=25)
     # n Transformer encoder and n Transformer decoder
-    parser.add_argument('--num_hidden_layers', type=int, default=1)
+    parser.add_argument('--num_hidden_layers', type=int, default=2)
     # multi-head splits into (hidden_size / num heads) and combines after multi-head attention
     parser.add_argument('--num_heads', type=int, default=8)
     parser.add_argument('--hidden_size', type=int, default=128)
@@ -31,7 +31,7 @@ if __name__ =='__main__':
 
     parser.add_argument('--data_path', type=str, default='./data/ChatBotData.csv')
     parser.add_argument('--pre_data_path', type=str, default='./data/pre_ChatBotData.csv')
-    parser.add_argument('--vocab_path', type=str, default='./data/vocabulary.txt')
+    parser.add_argument('--vocab_path', type=str, default='.vocabulary.txt')
     parser.add_argument('--model_dir', type=str, default='./output/ckpt')
 
     args = parser.parse_args()
@@ -52,8 +52,11 @@ if __name__ =='__main__':
         print('No GPU found. Using CPU!')
         config = tf.estimator.RunConfig()
 
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+
     question, answer = load_data(args.data_path, args.pre_data_path)
-    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, args.vocab_path, args.vocab_limit)
+    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, os.path.join(args.model_dir,args.vocab_path), args.vocab_limit)
 
     # define estimator (vocab_size should be determined before)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn,
