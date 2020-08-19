@@ -31,7 +31,7 @@ if __name__ =='__main__':
 
     parser.add_argument('--data_path', type=str, default='./data/ChatBotData.csv')
     parser.add_argument('--pre_data_path', type=str, default='./data/pre_ChatBotData.csv')
-    parser.add_argument('--vocab_path', type=str, default='.vocabulary.txt')
+    parser.add_argument('--vocab_path', type=str, default='vocabulary.txt')
     parser.add_argument('--model_dir', type=str, default='./output/ckpt')
 
     args = parser.parse_args()
