@@ -4,6 +4,7 @@ import os
 import re
 from tqdm import tqdm
 import pandas as pd
+import random
 
 
 # FILTERS = "([~.,!?\"':;)(])"
@@ -22,21 +23,21 @@ def load_data(path, pre_path):
 
     if os.path.exists(pre_path):
         data_df = pd.read_csv(pre_path, header=0, encoding='utf-8')
-        question, answer = list(data_df['Q']), list(data_df['A'])       
+        question, answer, label = list(data_df['Q']), list(data_df['A']), list(data_df['label'])  
     else:
         from konlpy.tag import Twitter
         data_df = pd.read_csv(path, header=0, encoding='utf-8')
-        question, answer = list(data_df['Q']), list(data_df['A'])
+        question, answer, label = list(data_df['Q']), list(data_df['A']), list(data_df['label'])
         
         twitter = Twitter()
         question = [cleaning_sentence(twitter, seq) for seq in tqdm(question)]
         answer = [cleaning_sentence(twitter, seq) for seq in tqdm(answer)]
 
-        QnA = {'Q':question, 'A':answer}
-        df = pd.DataFrame(QnA, columns=['Q', 'A'])
+        QnA = {'Q':question, 'A':answer, 'label':label}
+        df = pd.DataFrame(QnA, columns=['Q', 'A', 'label'])
         df.to_csv(pre_path, index = False, header=True)
 
-    return question, answer
+    return question, answer, label
 
 
 def cleaning_sentence(morpher, sentence):
@@ -44,7 +45,7 @@ def cleaning_sentence(morpher, sentence):
     return re.sub(CHANGE_FILTER, "", morph_seq)
     
 
-def load_vocabulary(sentences, path, vocab_limit=5000):
+def load_vocabulary(sentences, emotion_num, path, vocab_limit=5000):
 
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as vocab_file:
@@ -59,7 +60,8 @@ def load_vocabulary(sentences, path, vocab_limit=5000):
                 word_freq[word]=1
 
         vocab=sorted(word_freq, key=lambda k : word_freq[k], reverse=True)
-        vocab_list = MARKER + vocab[:vocab_limit]
+        EMOT = ['e'+str(num) for num in range(emotion_num)]
+        vocab_list = MARKER + EMOT + vocab[:vocab_limit]
 
         with open(path, 'w') as vocabulary_file:
             for word in vocab_list:
@@ -70,6 +72,17 @@ def load_vocabulary(sentences, path, vocab_limit=5000):
     
     return char2idx, idx2char, len(char2idx)
 
+def train_test_split(question, label, answer, train_size=0.67):
+    L = len(question)
+    idxs=list(range(0, L))
+    random.seed(1)
+    random.shuffle(idxs)
+    # shuffle the whole dataset before training
+    num = int(L * train_size)
+    train_data = {'question': [question[idx] for idx in idxs[:num]], 'label': [label[idx] for idx in idxs[:num]], 'answer': [answer[idx] for idx in idxs[:num]]}
+    test_data = {'question': [question[idx] for idx in idxs[num:]], 'label': [label[idx] for idx in idxs[num:]], 'answer': [answer[idx] for idx in idxs[num:]]}
+
+    return train_data, test_data
 
 def text2num(sentences, dictionary, max_length):
 
@@ -121,15 +134,15 @@ def pred_parse_function():
 
 def input_fn(epoch, batch_size, data):
     # > reference : https://www.tensorflow.org/guide/datasets
-    questions = tf.constant(data[0])
-    answers = tf.constant(data[1])
+    questions = tf.constant(data['question'])
+    answers = tf.constant(data['answer'])
     ds = tf.data.Dataset.from_tensor_slices((questions, answers))
     ds = ds.map(train_parse_function(), num_parallel_calls=8)
 
     if epoch is None:
         ds = ds.repeat(1)
     else:
-        SHUFFLE_SIZE = len(data[0])
+        SHUFFLE_SIZE = len(data['question'])
         ds = ds.shuffle(SHUFFLE_SIZE).repeat(epoch)
 
     ds = ds.batch(batch_size)
