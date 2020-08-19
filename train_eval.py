@@ -56,7 +56,7 @@ if __name__ =='__main__':
 
     question, answer, label = load_data(args.data_path, args.pre_data_path)
     emotion_num = len(set(label))
-    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, emotion_num, os.path.join(args.model_dir,args.vocab_path), args.vocab_limit)
+    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, os.path.join(args.model_dir,args.vocab_path), emotion_num, args.vocab_limit)
 
     # define estimator (vocab_size should be determined before)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn,

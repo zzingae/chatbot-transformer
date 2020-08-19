@@ -45,7 +45,7 @@ def cleaning_sentence(morpher, sentence):
     return re.sub(CHANGE_FILTER, "", morph_seq)
     
 
-def load_vocabulary(sentences, emotion_num, path, vocab_limit=5000):
+def load_vocabulary(sentences, path, emotion_num=3, vocab_limit=5000):
 
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as vocab_file:

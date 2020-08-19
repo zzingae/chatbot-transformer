@@ -24,6 +24,9 @@ if __name__ =='__main__':
 
     # error when spaces exist between characters
     parser.add_argument('--question', type=str, default='안녕하세요')
+    # https://github.com/songys/Chatbot_data
+    # 일상다반서 0, 이별(부정) 1, 사랑(긍정) 2로 레이블링
+    parser.add_argument('--num_emotion', type=int, default=3)
 
     args = parser.parse_args()
 
@@ -40,14 +43,18 @@ if __name__ =='__main__':
             config=config
             )
 
-    args.question = '감사합니다'
+    # args.question = '감사합니다'
 
     twitter = Twitter()
     morph_question = [cleaning_sentence(twitter, args.question)]
-    num_question = text2num(morph_question,char2idx,args.max_length)
+    num_question = text2num(morph_question,char2idx,args.max_length-1)
+    # add emotion token
+    emot_questions=[]
+    for e in range(args.num_emotion):
+        emot_questions.append([char2idx['e'+str(e)]] + num_question[0])
 
     # latest checkpoint will be used for prediction unless specified
-    preds=estimator.predict(input_fn=lambda:pred_input_fn(args.batch_size, num_question))
+    preds=estimator.predict(input_fn=lambda:pred_input_fn(args.batch_size, emot_questions))
                             #   checkpoint_path=os.path.join(args.model_dir, 'model.ckpt-100000'))
 
     for pred in preds:
