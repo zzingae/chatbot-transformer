@@ -47,7 +47,8 @@ def cleaning_sentence(morpher, sentence):
 def load_vocabulary(sentences, path, vocab_limit=5000):
 
     if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as vocab_file:
+        # with open(path, 'r', encoding='utf-8') as vocab_file:
+        with open(path, 'r') as vocab_file:
             vocab_list = [line.strip() for line in vocab_file]
     else:
         words = [word for seq in sentences for word in seq.split()]
