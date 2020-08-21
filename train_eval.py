@@ -15,14 +15,14 @@ if __name__ =='__main__':
     parser.add_argument('--max_steps', type=int, default=100000)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--learning_rate', type=float, default=2)
-    parser.add_argument('--num_gpus', type=int, default=0)
+    parser.add_argument('--num_gpus', type=int, default=1)
     parser.add_argument('--save_checkpoints_steps', type=int, default=5000)
     parser.add_argument('--keep_checkpoint_max', type=int, default=10)
 
     parser.add_argument('--vocab_limit', type=int, default=5000)
     parser.add_argument('--max_length', type=int, default=25)
     # n Transformer encoder and n Transformer decoder
-    parser.add_argument('--num_hidden_layers', type=int, default=2)
+    parser.add_argument('--num_hidden_layers', type=int, default=3)
     # multi-head splits into (hidden_size / num heads) and combines after multi-head attention
     parser.add_argument('--num_heads', type=int, default=8)
     parser.add_argument('--hidden_size', type=int, default=128)
