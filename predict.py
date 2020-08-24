@@ -10,7 +10,7 @@ if __name__ =='__main__':
     parser = argparse.ArgumentParser()
  
     parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--num_gpus', type=int, default=0)
+    parser.add_argument('--num_gpus', type=int, default=1)
 
     parser.add_argument('--max_length', type=int, default=25)
     parser.add_argument('--extra_decode_length', type=int, default=0)

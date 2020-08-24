@@ -5,6 +5,7 @@ import re
 from tqdm import tqdm
 import pandas as pd
 import random
+from sklearn.model_selection import train_test_split
 
 
 # FILTERS = "([~.,!?\"':;)(])"
@@ -73,17 +74,26 @@ def load_vocabulary(sentences, path, emotion_num=3, vocab_limit=5000):
     
     return char2idx, idx2char, len(char2idx)
 
-def train_test_split(question, label, answer, train_size=0.67):
-    L = len(question)
-    idxs=list(range(0, L))
-    random.seed(1)
-    random.shuffle(idxs)
-    # shuffle the whole dataset before training
-    num = int(L * train_size)
-    train_data = {'question': [question[idx] for idx in idxs[:num]], 'label': [label[idx] for idx in idxs[:num]], 'answer': [answer[idx] for idx in idxs[:num]]}
-    test_data = {'question': [question[idx] for idx in idxs[num:]], 'label': [label[idx] for idx in idxs[num:]], 'answer': [answer[idx] for idx in idxs[num:]]}
+def my_train_test_split(question, answer, label):
 
-    return train_data, test_data
+    QnA={}
+    for i in range(len(question)):
+        QnA[question[i]+answer[i]]=i
+    
+    train_Q, eval_Q, train_A, eval_A = train_test_split(question, answer, test_size=0.33, random_state=42)
+
+    train_L=[]
+    for i in range(len(train_Q)):
+        train_L.append(label[QnA[train_Q[i]+train_A[i]]])
+
+    eval_L=[]
+    for i in range(len(eval_Q)):
+        eval_L.append(label[QnA[eval_Q[i]+eval_A[i]]])
+
+    train_data = {'question': train_Q, 'answer': train_A, 'label': train_L}
+    eval_data = {'question': eval_Q, 'answer': eval_A, 'label': eval_L}
+
+    return train_data, eval_data
 
 def text2num(sentences, dictionary, max_length):
 

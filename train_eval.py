@@ -5,7 +5,6 @@ import model
 import numpy as np
 import random
 from dataloader import *
-from sklearn.model_selection import train_test_split
 
 
 if __name__ =='__main__':
@@ -66,25 +65,8 @@ if __name__ =='__main__':
             config=config
             )
 
-    # split train and eval QnA
-    QnA={}
-    for i in range(len(question)):
-        QnA[question[i]+answer[i]]=i
-    
-    train_Q, eval_Q, train_A, eval_A = train_test_split(question, answer, test_size=0.33, random_state=42)
-
-    train_L=[]
-    for i in range(len(train_Q)):
-        train_L.append(label[QnA[train_Q[i]+train_A[i]]])
-
-    eval_L=[]
-    for i in range(len(eval_Q)):
-        eval_L.append(label[QnA[eval_Q[i]+eval_A[i]]])
-
-    train_data = {'question': train_Q, 'answer': train_A, 'label': train_L}
-    eval_data = {'question': eval_Q, 'answer': eval_A, 'label': eval_L}
-
-    train_data, eval_data = train_test_split(question, label, answer, train_size=0.67)
+    # split train and eval QnA, as well as label
+    train_data, eval_data = my_train_test_split(question, answer, label)
 
     train_data['question'] = text2num(train_data['question'], char2idx, args.max_length-1)
     # insert additional emotion token in front of each question
