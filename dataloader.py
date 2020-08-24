@@ -156,6 +156,8 @@ def train_parse_function(max_length):
 
         mask_answer,answer_weight = label_masking(answer, max_length)
 
+        # return {"question": mask_question, "answer" : tf.cast(question, tf.int32)}
+        # return {"question": mask_answer, "answer" : tf.cast(answer, tf.int32)}
         return {"question": question, "answer" : tf.cast(answer, tf.int32), 
                 "mask_answer" : tf.cast(mask_answer, tf.int32), "answer_weight" : tf.cast(answer_weight, tf.float32)}
 
