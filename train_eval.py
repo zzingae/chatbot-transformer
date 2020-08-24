@@ -5,33 +5,32 @@ import model
 import numpy as np
 import random
 from dataloader import *
-from sklearn.model_selection import train_test_split
 
 
 if __name__ =='__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--max_epochs', type=int, default=100)
-    parser.add_argument('--max_steps', type=int, default=10000)
+    parser.add_argument('--max_epochs', type=int, default=1000)
+    parser.add_argument('--max_steps', type=int, default=100000)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--learning_rate', type=float, default=2)
-    parser.add_argument('--num_gpus', type=int, default=0)
+    parser.add_argument('--num_gpus', type=int, default=1)
     parser.add_argument('--save_checkpoints_steps', type=int, default=5000)
     parser.add_argument('--keep_checkpoint_max', type=int, default=10)
 
     parser.add_argument('--vocab_limit', type=int, default=5000)
     parser.add_argument('--max_length', type=int, default=25)
     # n Transformer encoder and n Transformer decoder
-    parser.add_argument('--num_hidden_layers', type=int, default=1)
+    parser.add_argument('--num_hidden_layers', type=int, default=3)
     # multi-head splits into (hidden_size / num heads) and combines after multi-head attention
     parser.add_argument('--num_heads', type=int, default=8)
     parser.add_argument('--hidden_size', type=int, default=128)
-    # Inner layer dimension in the feedforward network (128->512->128)
+    # inner layer dimension in the feedforward network (128->512->128)
     parser.add_argument('--filter_size', type=int, default=512)
 
     parser.add_argument('--data_path', type=str, default='./data/ChatBotData.csv')
     parser.add_argument('--pre_data_path', type=str, default='./data/pre_ChatBotData.csv')
-    parser.add_argument('--vocab_path', type=str, default='./data/vocabulary.txt')
+    parser.add_argument('--vocab_path', type=str, default='vocabulary.txt')
     parser.add_argument('--model_dir', type=str, default='./output/ckpt')
 
     args = parser.parse_args()
@@ -52,8 +51,12 @@ if __name__ =='__main__':
         print('No GPU found. Using CPU!')
         config = tf.estimator.RunConfig()
 
-    question, answer = load_data(args.data_path, args.pre_data_path)
-    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, args.vocab_path, args.vocab_limit)
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+
+    question, answer, label = load_data(args.data_path, args.pre_data_path)
+    emotion_num = len(set(label))
+    char2idx, idx2char, args.vocab_size = load_vocabulary(question+answer, os.path.join(args.model_dir,args.vocab_path), emotion_num, args.vocab_limit)
 
     # define estimator (vocab_size should be determined before)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn,
@@ -62,22 +65,25 @@ if __name__ =='__main__':
             config=config
             )
 
-    # split train and eval QnA
-    train_input, eval_input, train_label, eval_label = train_test_split(question, answer, test_size=0.33, random_state=42)
+    # split train and eval QnA, as well as label
+    train_data, eval_data = my_train_test_split(question, answer, label)
 
-    train_input = text2num(train_input, char2idx, args.max_length)
-    train_label = text2num(train_label, char2idx, args.max_length)
+    train_data['question'] = text2num(train_data['question'], char2idx, args.max_length-1)
+    # insert additional emotion token in front of each question
+    train_data['question'] = [[char2idx['e'+str(l)]] + q for q, l in zip(train_data['question'], train_data['label'])]
+    train_data['answer'] = text2num(train_data['answer'], char2idx, args.max_length)
 
-    eval_input = text2num(eval_input, char2idx, args.max_length)
-    eval_label = text2num(eval_label, char2idx, args.max_length)
+    eval_data['question'] = text2num(eval_data['question'], char2idx, args.max_length-1)
+    # insert additional emotion token in front of each question
+    eval_data['question'] = [[char2idx['e'+str(l)]] + q for q, l in zip(eval_data['question'], eval_data['label'])]
+    eval_data['answer'] = text2num(eval_data['answer'], char2idx, args.max_length)
 
     tf.logging.set_verbosity(tf.logging.INFO)
 
     # train up to args.max_steps unless args.max_epochs is done
     train_spec = tf.estimator.TrainSpec(max_steps=args.max_steps,
-                                      input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=(train_input, train_label), 
-                                      max_length=args.max_length))
-    eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=(eval_input, eval_label),
-                                      max_length=args.max_length))
+                                      input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=train_data, max_length=args.max_length))
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=eval_data, max_length=args.max_length))
+
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
