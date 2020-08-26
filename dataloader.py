@@ -135,9 +135,13 @@ def label_masking(label, max_length):
     end_token = 1
 
     # tf.where: If both x and y are None, then this operation returns the coordinates of true elements of condition
-    actual_len = tf.where(tf.equal(label, end_token))
+    actual_len = tf.squeeze(tf.where(tf.equal(label, end_token)))
 
-    mask_num = tf.random.uniform(shape=[1], minval=1, maxval=actual_len, dtype=tf.dtypes.int32)
+    mask_num = tf.cond(tf.less(actual_len,3),
+                    true_fn = lambda: 0,
+                    false_fn= lambda: tf.random.uniform(shape=[1], minval=0, 
+                                                        maxval=tf.cast(actual_len/3,tf.int32)+1, dtype=tf.dtypes.int32))
+
     indices = tf.reshape(tf.range(start=0, limit=actual_len, delta=1), [actual_len,1])
     # samples mask_num number of indices from uniform(0~actual_len) without replacement
     indices = tf.random.shuffle(indices)
