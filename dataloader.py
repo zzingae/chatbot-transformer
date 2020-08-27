@@ -134,18 +134,26 @@ def label_masking(label):
     end_token = 1
 
     # tf.where: If both x and y are None, then this operation returns the coordinates of true elements of condition
+    # padding과 end_token 을 제외한 실제 문장의 길이를 찾음
     actual_len = tf.squeeze(tf.where(tf.equal(label, end_token)))
     actual_len = tf.cast(actual_len,tf.int32)
 
+    # 실제 문장 내 몇개의 토큰을 마스킹 할지 랜덤하게 정함.
+    # 그러나 일부의 토큰만 마스킹해야 의미있는 학습이 가능하므로, 0 ~ 실제 문장 길이/3 범위 내 숫자를 랜덤으로 뽑아 마스킹함.
+    # 따라서, 실제 문장의 길이가 3보다 작을경우 마스킹 하지 않음 (actual_len < 3)
     mask_num = tf.cond(tf.less(actual_len,3),
                     true_fn = lambda: tf.constant([0]),
                     false_fn= lambda: tf.random.uniform(shape=[1], minval=0, maxval=tf.cast(actual_len/3,tf.int32)+1, dtype=tf.int32))
 
+    # 인덱스를 셔플하고 필요한 만큼의 인덱스만 저장
+    # 인덱스를 sort 하는 이유는 셔플에 의한 잘못된 순서를 바로잡기 위해
     indices = tf.reshape(tf.range(start=0, limit=actual_len, delta=1), [actual_len,1])
     indices = tf.random.shuffle(indices)[mask_num[0]:]
     indices = tf.sort(indices,axis=0)
 
+    # 인덱스에 해당하는 라벨만 추출함
     reduced_label = tf.gather_nd(label, indices)
+    # 줄어든 라벨에 end_token을 붙이고 마스킹된 개수만큼 padding 을 추가하여 붙여 동일한 길이를 유지함
     return tf.concat([reduced_label, [1], tf.zeros(tf.size(label)-tf.size(reduced_label)-1,tf.int32)],axis=0)
 
 
@@ -153,6 +161,7 @@ def train_parse_function():
     def _parse_function(question, answer):
         # >  https://www.tensorflow.org/guide/datasets
 
+        # 랜덤하게 question 혹은 answer 의 토큰 중 일부를 제거하여 질문/답변이 다양할 수 있도록 (N:N) 장려함.
         mask_question = label_masking(question)
         mask_answer = label_masking(answer)
 
