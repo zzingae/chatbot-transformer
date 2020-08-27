@@ -5,7 +5,7 @@ Transformer를 기본으로 한 질의응답 (입력: 질문, 출력: 답변) se
 - 학습/평가 데이터 출처: https://github.com/songys/Chatbot_data
 - 데이터 가공 참조: https://github.com/changwookjun/ChatBot_seq2seq_extend
 
-## Requirement
+## Requirements
 
 - Tensorflow-estimator
 - konlpy
