@@ -39,7 +39,8 @@ def model_fn(features, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT: features['answer']=None
 
     # define transformer
-    transformer = MaskTransformer(params, (mode == tf.estimator.ModeKeys.TRAIN))
+    # transformer = MaskTransformer(params, (mode == tf.estimator.ModeKeys.TRAIN))
+    transformer = Transformer(params, (mode == tf.estimator.ModeKeys.TRAIN))
     logits = transformer(features['question'], features['answer'])
 
     if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:

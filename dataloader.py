@@ -129,41 +129,34 @@ def num2text(indices, end_idx, dictionary):
     return ' '.join(words)
 
 
-def label_masking(label, max_length):
+def label_masking(label):
 
-    mask_token = 0
     end_token = 1
 
     # tf.where: If both x and y are None, then this operation returns the coordinates of true elements of condition
     actual_len = tf.squeeze(tf.where(tf.equal(label, end_token)))
+    actual_len = tf.cast(actual_len,tf.int32)
 
     mask_num = tf.cond(tf.less(actual_len,3),
-                    true_fn = lambda: 0,
-                    false_fn= lambda: tf.random.uniform(shape=[1], minval=0, 
-                                                        maxval=tf.cast(actual_len/3,tf.int32)+1, dtype=tf.dtypes.int32))
+                    true_fn = lambda: tf.constant([0]),
+                    false_fn= lambda: tf.random.uniform(shape=[1], minval=0, maxval=tf.cast(actual_len/3,tf.int32)+1, dtype=tf.int32))
 
     indices = tf.reshape(tf.range(start=0, limit=actual_len, delta=1), [actual_len,1])
-    # samples mask_num number of indices from uniform(0~actual_len) without replacement
-    indices = tf.random.shuffle(indices)
-    mask_ind = tf.slice(indices,[0,0],[tf.squeeze(mask_num),1])
-    # put 1 in mask_ind, leaving the rest of positions 0
-    bool_mask = tf.cast(tf.scatter_nd(mask_ind,tf.ones(mask_num,tf.int32),[max_length]), tf.bool)
-    # put mask_token in mask_ind, leaving the rest of positions same as label
-    masked_label = tf.where(bool_mask, tf.ones(max_length,tf.int32)*mask_token, label)
-    label_weight = tf.where(bool_mask, tf.ones(max_length,tf.int32), tf.zeros(max_length,tf.int32))
-    return masked_label, label_weight
+    indices = tf.random.shuffle(indices)[mask_num[0]:]
+    indices = tf.sort(indices,axis=0)
+
+    reduced_label = tf.gather_nd(label, indices)
+    return tf.concat([reduced_label, [1], tf.zeros(tf.size(label)-tf.size(reduced_label)-1,tf.int32)],axis=0)
 
 
-def train_parse_function(max_length):
+def train_parse_function():
     def _parse_function(question, answer):
         # >  https://www.tensorflow.org/guide/datasets
 
-        mask_answer,answer_weight = label_masking(answer, max_length)
+        mask_question = label_masking(question)
+        mask_answer = label_masking(answer)
 
-        # return {"question": mask_question, "answer" : tf.cast(question, tf.int32)}
-        # return {"question": mask_answer, "answer" : tf.cast(answer, tf.int32)}
-        return {"question": question, "answer" : tf.cast(answer, tf.int32), 
-                "mask_answer" : tf.cast(mask_answer, tf.int32), "answer_weight" : tf.cast(answer_weight, tf.float32)}
+        return {"question": mask_question, "answer" : mask_answer}
 
     return lambda a,b: _parse_function(a,b)
 
@@ -175,12 +168,12 @@ def pred_parse_function():
     return lambda a: _parse_function(a)
 
 
-def input_fn(epoch, batch_size, data, max_length):
+def input_fn(epoch, batch_size, data):
     # > reference : https://www.tensorflow.org/guide/datasets
     questions = tf.constant(data['question'])
     answers = tf.constant(data['answer'])
     ds = tf.data.Dataset.from_tensor_slices((questions, answers))
-    ds = ds.map(train_parse_function(max_length), num_parallel_calls=8)
+    ds = ds.map(train_parse_function(), num_parallel_calls=8)
 
     if epoch is None:
         ds = ds.repeat(1)

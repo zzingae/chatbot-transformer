@@ -82,8 +82,8 @@ if __name__ =='__main__':
 
     # train up to args.max_steps unless args.max_epochs is done
     train_spec = tf.estimator.TrainSpec(max_steps=args.max_steps,
-                                      input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=train_data, max_length=args.max_length))
-    eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=eval_data, max_length=args.max_length))
+                                      input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=train_data))
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=eval_data))
 
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
