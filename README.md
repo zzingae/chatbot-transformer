@@ -11,7 +11,7 @@ Transformer를 기본으로 한 질의응답 (입력: 질문, 출력: 답변) se
 - konlpy
   - prediction 시 필요
 
-## 브랜치 소개
+## Branches
 
 - master: 감정 데이터를 사용하지 않은 데이터로 transformer를 학습/평가
 - add-emot: 데이터셋에서 제공하는 감정 데이터를 입력 (질문) 시퀀스 맨 앞에 추가하여 학습/평가
