@@ -76,7 +76,7 @@ if __name__ =='__main__':
 
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    # train up to args.max_steps unless args.max_epochs is done
+    # train up to args.max_steps unless args.max_epochs done
     train_spec = tf.estimator.TrainSpec(max_steps=args.max_steps,
                                       input_fn=lambda:input_fn(epoch=args.max_epochs, batch_size=args.batch_size, data=(train_input, train_label)))
     eval_spec = tf.estimator.EvalSpec(input_fn=lambda:input_fn(epoch=None, batch_size=args.batch_size, data=(eval_input, eval_label)))
