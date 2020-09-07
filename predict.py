@@ -10,21 +10,21 @@ if __name__ =='__main__':
     parser = argparse.ArgumentParser()
  
     parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--num_gpus', type=int, default=1)
+    parser.add_argument('--num_gpus', type=int, default=0)
 
-    parser.add_argument('--max_iter', type=int, default=4)
+    parser.add_argument('--beam_size', type=int, default=5)
     parser.add_argument('--max_length', type=int, default=25)
     parser.add_argument('--extra_decode_length', type=int, default=0)
     parser.add_argument('--num_hidden_layers', type=int, default=2)
     parser.add_argument('--num_heads', type=int, default=8)
-    parser.add_argument('--hidden_size', type=int, default=128)
-    parser.add_argument('--filter_size', type=int, default=512) # Inner layer dimension in the feedforward network (128->512->128)
+    parser.add_argument('--hidden_size', type=int, default=512)
+    parser.add_argument('--filter_size', type=int, default=2048) # Inner layer dimension in the feedforward network (128->512->128)
 
     parser.add_argument('--vocab_path', type=str, default='vocabulary.txt')
-    parser.add_argument('--model_dir', type=str, default='./output/ckpt')
+    parser.add_argument('--model_dir', type=str, default='./output/ckpt-mask-10000')
 
     # error when spaces exist between characters
-    parser.add_argument('--question', type=str, default='안녕하세요')
+    parser.add_argument('--question', type=str, default='헤어지자')
     # https://github.com/songys/Chatbot_data
     # 일상다반서 0, 이별(부정) 1, 사랑(긍정) 2로 레이블링
     parser.add_argument('--num_emotion', type=int, default=3)
@@ -61,7 +61,8 @@ if __name__ =='__main__':
     for pred in preds:
         indices = pred['outputs'].tolist()
         # 최초 END 토큰이 나오기 전까지만 사용
-        answer = num2text(indices, char2idx['<END>'], idx2char)
         print('Q: {}'.format(morph_question))
-        print('A: {}'.format(answer))
+        for b in range(args.beam_size):
+            answer = num2text(indices[b][1:], char2idx['<END>'], idx2char)
+            print('top {}: {}'.format(b+1,answer))
         
